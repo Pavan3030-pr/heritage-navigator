@@ -32,10 +32,10 @@ export const Route = createFileRoute("/explorer/$id")({
 });
 
 function LandmarkDetails() {
-  const { landmark } = Route.useLoaderData();
+  const { landmark } = Route.useLoaderData() as { landmark: Landmark };
   const related = landmark.related
-    .map((id: string) => landmarks.find((l) => l.id === id))
-    .filter((l): l is Landmark => Boolean(l));
+    .map((id: string) => landmarks.find((l: Landmark) => l.id === id))
+    .filter((l: Landmark | undefined): l is Landmark => Boolean(l));
 
   return (
     <div>
