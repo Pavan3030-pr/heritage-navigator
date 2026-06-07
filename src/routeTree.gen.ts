@@ -9,38 +9,134 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RoutesRouteImport } from './routes/routes'
+import { Route as ExplorerRouteImport } from './routes/explorer'
+import { Route as AiGuideRouteImport } from './routes/ai-guide'
+import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ExplorerIdRouteImport } from './routes/explorer.$id'
 
+const RoutesRoute = RoutesRouteImport.update({
+  id: '/routes',
+  path: '/routes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExplorerRoute = ExplorerRouteImport.update({
+  id: '/explorer',
+  path: '/explorer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AiGuideRoute = AiGuideRouteImport.update({
+  id: '/ai-guide',
+  path: '/ai-guide',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AchievementsRoute = AchievementsRouteImport.update({
+  id: '/achievements',
+  path: '/achievements',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ExplorerIdRoute = ExplorerIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ExplorerRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/ai-guide': typeof AiGuideRoute
+  '/explorer': typeof ExplorerRouteWithChildren
+  '/routes': typeof RoutesRoute
+  '/explorer/$id': typeof ExplorerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/ai-guide': typeof AiGuideRoute
+  '/explorer': typeof ExplorerRouteWithChildren
+  '/routes': typeof RoutesRoute
+  '/explorer/$id': typeof ExplorerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/achievements': typeof AchievementsRoute
+  '/ai-guide': typeof AiGuideRoute
+  '/explorer': typeof ExplorerRouteWithChildren
+  '/routes': typeof RoutesRoute
+  '/explorer/$id': typeof ExplorerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/achievements'
+    | '/ai-guide'
+    | '/explorer'
+    | '/routes'
+    | '/explorer/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/achievements'
+    | '/ai-guide'
+    | '/explorer'
+    | '/routes'
+    | '/explorer/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/achievements'
+    | '/ai-guide'
+    | '/explorer'
+    | '/routes'
+    | '/explorer/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AchievementsRoute: typeof AchievementsRoute
+  AiGuideRoute: typeof AiGuideRoute
+  ExplorerRoute: typeof ExplorerRouteWithChildren
+  RoutesRoute: typeof RoutesRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/routes': {
+      id: '/routes'
+      path: '/routes'
+      fullPath: '/routes'
+      preLoaderRoute: typeof RoutesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explorer': {
+      id: '/explorer'
+      path: '/explorer'
+      fullPath: '/explorer'
+      preLoaderRoute: typeof ExplorerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ai-guide': {
+      id: '/ai-guide'
+      path: '/ai-guide'
+      fullPath: '/ai-guide'
+      preLoaderRoute: typeof AiGuideRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/achievements': {
+      id: '/achievements'
+      path: '/achievements'
+      fullPath: '/achievements'
+      preLoaderRoute: typeof AchievementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +144,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/explorer/$id': {
+      id: '/explorer/$id'
+      path: '/$id'
+      fullPath: '/explorer/$id'
+      preLoaderRoute: typeof ExplorerIdRouteImport
+      parentRoute: typeof ExplorerRoute
+    }
   }
 }
 
+interface ExplorerRouteChildren {
+  ExplorerIdRoute: typeof ExplorerIdRoute
+}
+
+const ExplorerRouteChildren: ExplorerRouteChildren = {
+  ExplorerIdRoute: ExplorerIdRoute,
+}
+
+const ExplorerRouteWithChildren = ExplorerRoute._addFileChildren(
+  ExplorerRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AchievementsRoute: AchievementsRoute,
+  AiGuideRoute: AiGuideRoute,
+  ExplorerRoute: ExplorerRouteWithChildren,
+  RoutesRoute: RoutesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
