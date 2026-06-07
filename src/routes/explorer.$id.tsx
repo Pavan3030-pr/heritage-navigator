@@ -138,7 +138,7 @@ function LandmarkDetails() {
           <div className="mx-auto max-w-7xl px-5 lg:px-8">
             <h2 className="font-display text-3xl md:text-4xl font-semibold mb-8">Related landmarks</h2>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((l) => <LandmarkCard key={l.id} landmark={l} />)}
+              {related.map((l: Landmark) => <LandmarkCard key={l.id} landmark={l} />)}
             </div>
           </div>
         </section>
