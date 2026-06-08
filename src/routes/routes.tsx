@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { RouteCard, type GeneratedRoute } from "@/components/RouteCard";
 import { Landmark, Building2, Palette, UtensilsCrossed, Sparkles, Loader2 } from "lucide-react";
+import { generateHeritageRoute } from "@/lib/ai-service";
+import { saveRoute } from "@/lib/data-service";
 
 export const Route = createFileRoute("/routes")({
   head: () => ({
@@ -20,64 +22,33 @@ const interestOptions = [
   { id: "food", label: "Food Heritage", icon: UtensilsCrossed, hue: "bg-secondary text-secondary-foreground", desc: "Recipes, markets, and culinary lore." },
 ];
 
-const sampleRoutes: Record<string, GeneratedRoute> = {
-  default: {
-    title: "Colonial Kolkata: A Half-Day Walk",
-    duration: "4 hrs · 6.2 km",
-    vibe: "Architecture · History",
-    stops: [
-      { name: "Victoria Memorial", time: "9:00 AM", highlight: "Begin at this marble masterpiece — watch the morning light hit the Angel of Victory." },
-      { name: "St. Paul's Cathedral", time: "10:30 AM", highlight: "A short walk away — admire the Burne-Jones stained glass." },
-      { name: "Town Hall", time: "11:45 AM", highlight: "Pause at the Roman Doric facade and the Kolkata Panorama inside." },
-      { name: "Prinsep Ghat", time: "1:00 PM", highlight: "End at the riverside Palladian porch with a quiet ferry view." },
-    ],
-  },
-  food: {
-    title: "Taste of Old Calcutta",
-    duration: "5 hrs · 4.8 km",
-    vibe: "Food · Culture",
-    stops: [
-      { name: "Marble Palace", time: "10:00 AM", highlight: "Begin with grandeur before the city wakes." },
-      { name: "Mullick Bazaar", time: "11:30 AM", highlight: "Hunt down century-old kosha mangsho and luchi." },
-      { name: "Indian Museum", time: "1:00 PM", highlight: "Rest among artefacts and Egyptian galleries." },
-      { name: "Park Street Cafés", time: "3:00 PM", highlight: "Close with a slice of nostalgia at Flurys." },
-    ],
-  },
-  spiritual: {
-    title: "Sacred Banks of the Hooghly",
-    duration: "6 hrs · Ferry inclusive",
-    vibe: "Culture · History",
-    stops: [
-      { name: "Dakshineswar Temple", time: "8:00 AM", highlight: "Catch the morning aarti at Rani Rashmoni's temple." },
-      { name: "Belur Math", time: "10:30 AM", highlight: "Cross by ferry to Vivekananda's universal sanctuary." },
-      { name: "Howrah Bridge", time: "1:00 PM", highlight: "Walk the lifeline of the twin cities." },
-      { name: "Prinsep Ghat", time: "5:00 PM", highlight: "Close with sunset on the Hooghly." },
-    ],
-  },
-};
-
-function pickRoute(ids: string[]): GeneratedRoute {
-  if (ids.includes("food")) return sampleRoutes.food;
-  if (ids.includes("culture") && ids.length === 1) return sampleRoutes.spiritual;
-  return sampleRoutes.default;
-}
-
 function Routes() {
   const [selected, setSelected] = useState<string[]>([]);
   const [route, setRoute] = useState<GeneratedRoute | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const toggle = (id: string) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const generate = () => {
+  const generate = async () => {
     if (selected.length === 0) return;
     setLoading(true);
     setRoute(null);
-    setTimeout(() => {
-      setRoute(pickRoute(selected));
+    setError(null);
+
+    try {
+      const generated = await generateHeritageRoute(selected);
+      setRoute(generated);
+
+      // Persist to Supabase (fire-and-forget)
+      saveRoute(selected, generated).catch(console.error);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to generate route. Please try again.";
+      setError(message);
+    } finally {
       setLoading(false);
-    }, 1100);
+    }
   };
 
   return (
@@ -101,7 +72,8 @@ function Routes() {
               <button
                 key={opt.id}
                 onClick={() => toggle(opt.id)}
-                className={`group relative text-left rounded-3xl p-6 border-2 transition-all duration-300 ${
+                disabled={loading}
+                className={`group relative text-left rounded-3xl p-6 border-2 transition-all duration-300 disabled:opacity-60 ${
                   active
                     ? "border-accent shadow-elegant -translate-y-1 bg-card"
                     : "border-border bg-card hover:border-accent/50 hover:shadow-soft"
@@ -142,8 +114,16 @@ function Routes() {
             <p className="mt-4 text-sm text-muted-foreground">Weaving stops, stories, and timings into your itinerary…</p>
           </div>
         )}
-        {!loading && route && <RouteCard route={route} />}
-        {!loading && !route && (
+        {error && !loading && (
+          <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-8 text-center animate-fade-up">
+            <p className="text-sm text-destructive font-medium">{error}</p>
+            <button onClick={generate} className="mt-4 text-xs underline text-muted-foreground">
+              Try again
+            </button>
+          </div>
+        )}
+        {!loading && !error && route && <RouteCard route={route} />}
+        {!loading && !error && !route && (
           <div className="rounded-3xl border border-dashed border-border bg-card p-12 text-center">
             <div className="text-5xl">🗺️</div>
             <h3 className="mt-4 font-display text-2xl font-semibold">Your journey awaits</h3>

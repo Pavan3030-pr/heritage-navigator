@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BadgeCard } from "@/components/BadgeCard";
-import { badges } from "@/data/badges";
-import { landmarks } from "@/data/landmarks";
-import { Trophy, Target, Flame, CheckCircle2 } from "lucide-react";
+import { getLandmarks } from "@/lib/data-service";
+import { getAchievements } from "@/lib/data-service";
+import type { Badge } from "@/data/badges";
+import type { Landmark } from "@/data/landmarks";
+import { Trophy, Target, Flame, CheckCircle2, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export const Route = createFileRoute("/achievements")({
   head: () => ({
@@ -14,11 +17,49 @@ export const Route = createFileRoute("/achievements")({
   component: Achievements,
 });
 
-const completed = ["victoria-memorial", "howrah-bridge", "indian-museum", "marble-palace", "prinsep-ghat", "town-hall", "st-pauls-cathedral"];
+// Landmarks considered "completed" for demonstration purposes
+const COMPLETED_IDS = [
+  "victoria-memorial","howrah-bridge","indian-museum",
+  "marble-palace","prinsep-ghat","town-hall","st-pauls-cathedral",
+];
 
 function Achievements() {
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([getAchievements(), getLandmarks()])
+      .then(([b, l]) => {
+        setBadges(b);
+        setLandmarks(l);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   const unlocked = badges.filter((b) => b.unlocked).length;
-  const totalProgress = Math.round((completed.length / landmarks.length) * 100);
+  const completed = landmarks.filter((l) => COMPLETED_IDS.includes(l.id));
+  const totalProgress = landmarks.length
+    ? Math.round((completed.length / landmarks.length) * 100)
+    : 0;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-destructive text-sm">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gradient-warm min-h-screen">
@@ -80,7 +121,7 @@ function Achievements() {
         <h2 className="font-display text-3xl font-semibold mb-8">Completed Landmarks</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {landmarks.map((l) => {
-            const done = completed.includes(l.id);
+            const done = COMPLETED_IDS.includes(l.id);
             return (
               <div
                 key={l.id}

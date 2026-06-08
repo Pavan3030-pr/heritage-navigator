@@ -1,11 +1,13 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { getLandmark, landmarks, type Landmark } from "@/data/landmarks";
+import { getLandmarkById, getLandmarks } from "@/lib/data-service";
+import type { Landmark } from "@/data/landmarks";
 import { LandmarkCard } from "@/components/LandmarkCard";
-import { ArrowLeft, Bot, MapPin, Sparkles } from "lucide-react";
+import { ArrowLeft, Bot, MapPin, Sparkles, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export const Route = createFileRoute("/explorer/$id")({
-  loader: ({ params }) => {
-    const landmark = getLandmark(params.id);
+  loader: async ({ params }) => {
+    const landmark = await getLandmarkById(params.id);
     if (!landmark) throw notFound();
     return { landmark };
   },
@@ -29,13 +31,28 @@ export const Route = createFileRoute("/explorer/$id")({
       </Link>
     </div>
   ),
+  pendingComponent: () => (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-accent" />
+    </div>
+  ),
 });
 
 function LandmarkDetails() {
   const { landmark } = Route.useLoaderData() as { landmark: Landmark };
-  const related = landmark.related
-    .map((id: string) => landmarks.find((l: Landmark) => l.id === id))
-    .filter((l: Landmark | undefined): l is Landmark => Boolean(l));
+  const [related, setRelated] = useState<Landmark[]>([]);
+
+  useEffect(() => {
+    if (!landmark.related?.length) return;
+    getLandmarks()
+      .then((all) => {
+        const relatedItems = landmark.related
+          .map((id) => all.find((l) => l.id === id))
+          .filter((l): l is Landmark => Boolean(l));
+        setRelated(relatedItems);
+      })
+      .catch(console.error);
+  }, [landmark]);
 
   return (
     <div>
@@ -76,7 +93,7 @@ function LandmarkDetails() {
           <div>
             <h2 className="font-display text-3xl font-semibold mb-6">Interesting Facts</h2>
             <div className="grid sm:grid-cols-2 gap-4">
-              {landmark.facts.map((f: string, i: number) => (
+              {(landmark.facts ?? []).map((f: string, i: number) => (
                 <div key={i} className="rounded-2xl border border-border bg-card p-5 shadow-soft">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-gold text-sm font-bold text-gold-foreground mb-3">
                     {i + 1}
@@ -90,7 +107,7 @@ function LandmarkDetails() {
           <div>
             <h2 className="font-display text-3xl font-semibold mb-6">Historical Timeline</h2>
             <ol className="relative border-l-2 border-border ml-3 space-y-6">
-              {landmark.timeline.map((t: { year: string; event: string }, i: number) => (
+              {(landmark.timeline ?? []).map((t: { year: string; event: string }, i: number) => (
                 <li key={i} className="pl-6 relative">
                   <span className="absolute -left-[9px] top-1 h-4 w-4 rounded-full bg-gradient-hero ring-4 ring-background" />
                   <div className="font-display text-2xl font-semibold text-accent">{t.year}</div>

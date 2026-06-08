@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SearchBar } from "@/components/SearchBar";
 import { LandmarkCard } from "@/components/LandmarkCard";
-import { landmarks, categories } from "@/data/landmarks";
-import { SlidersHorizontal } from "lucide-react";
+import { categories } from "@/data/landmarks";
+import type { Landmark } from "@/data/landmarks";
+import { getLandmarks } from "@/lib/data-service";
+import { SlidersHorizontal, Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/explorer")({
   head: () => ({
@@ -18,6 +20,17 @@ export const Route = createFileRoute("/explorer")({
 function Explorer() {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
+  const [landmarks, setLandmarks] = useState<Landmark[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    getLandmarks()
+      .then(setLandmarks)
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filtered = useMemo(() => {
     return landmarks.filter((l) => {
@@ -25,7 +38,7 @@ function Explorer() {
       const matchesC = cat === "All" || l.category === cat;
       return matchesQ && matchesC;
     });
-  }, [q, cat]);
+  }, [q, cat, landmarks]);
 
   return (
     <div className="bg-gradient-warm min-h-screen">
@@ -62,19 +75,41 @@ function Explorer() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 lg:px-8 pb-24">
-        <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
-          <span>{filtered.length} {filtered.length === 1 ? "landmark" : "landmarks"} found</span>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="rounded-3xl border border-dashed border-border bg-card p-16 text-center">
-            <div className="text-5xl mb-4">🔍</div>
-            <h3 className="font-display text-2xl font-semibold">No landmarks match yet</h3>
-            <p className="mt-2 text-sm text-muted-foreground">Try a different search or category.</p>
+        {loading && (
+          <div className="flex items-center justify-center py-24">
+            <Loader2 className="h-8 w-8 animate-spin text-accent" />
           </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((l) => <LandmarkCard key={l.id} landmark={l} />)}
+        )}
+
+        {error && !loading && (
+          <div className="rounded-3xl border border-destructive/30 bg-destructive/10 p-8 text-center">
+            <p className="text-sm text-destructive font-medium">{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 text-xs underline text-muted-foreground"
+            >
+              Retry
+            </button>
           </div>
+        )}
+
+        {!loading && !error && (
+          <>
+            <div className="mb-6 flex items-center justify-between text-sm text-muted-foreground">
+              <span>{filtered.length} {filtered.length === 1 ? "landmark" : "landmarks"} found</span>
+            </div>
+            {filtered.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-border bg-card p-16 text-center">
+                <div className="text-5xl mb-4">🔍</div>
+                <h3 className="font-display text-2xl font-semibold">No landmarks match yet</h3>
+                <p className="mt-2 text-sm text-muted-foreground">Try a different search or category.</p>
+              </div>
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {filtered.map((l) => <LandmarkCard key={l.id} landmark={l} />)}
+              </div>
+            )}
+          </>
         )}
       </section>
     </div>
